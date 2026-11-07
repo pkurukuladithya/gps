@@ -1,0 +1,27 @@
+LIVE GPS TRACKING PROJECT
+=========================
+
+SUPABASE
+
+Project Name:live-gps-tracking
+SUPABASE_URL=https://ixgzliwyjgbxvchvhpft.supabase.co
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_8-m3BhZnYtVv63znNXw2Cg_ROkl7TPl
+
+DATABASE
+
+Table 1: trips
+Table 2: location_history
+
+REALTIME
+
+Publication: supabase_realtime
+Enabled Table: location_history
+
+AUTHENTICATION
+
+Provider: Email
+Demo Account: kurukuladithyapraveena@gmail.com
+
+PLAN
+
+Free
