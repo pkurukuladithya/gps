@@ -1,0 +1,40 @@
+# Credentials and sensitive config
+supabase_config.txt
+LIVE GPS TRACKING PROJECT.txt
+.env
+.env.local
+.env.*.local
+*.env
+*.env.local
+mobile_app/.env
+frontend/.env
+
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs and temporary directories
+dist/
+build/
+web-build/
+.expo/
+.expo-shared/
+
+# Android generated folders (from expo prebuild)
+mobile_app/android/
+android/
+*.apk
+*.aab
+*.keystore
+*.jks
+.gradle/
+local.properties
+
+# IDE and OS files
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+*.swo
