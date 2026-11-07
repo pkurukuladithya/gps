@@ -1,24 +1,23 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Redirect } from 'expo-router';
 import { useAuth } from '../hooks/useAuth';
 import { StellaLogo } from '../components/StellaLogo';
 import { THEME } from '../constants/theme';
 
 export default function IndexScreen() {
   const { session, loading } = useAuth();
-  const router = useRouter();
 
-  useEffect(() => {
-    if (!loading) {
-      if (session) {
-        router.replace('/dashboard');
-      } else {
-        router.replace('/(auth)/login');
-      }
+  // Once loading completes, use Expo Router's declarative Redirect component
+  if (!loading) {
+    if (session) {
+      return <Redirect href="/dashboard" />;
+    } else {
+      return <Redirect href="/(auth)/login" />;
     }
-  }, [session, loading, router]);
+  }
 
+  // Initial loading splash view
   return (
     <View style={styles.container}>
       <StellaLogo size="large" />

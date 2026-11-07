@@ -15,6 +15,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { StellaLogo } from '../../components/StellaLogo';
 import { Button } from '../../components/Button';
 import { THEME } from '../../constants/theme';
+import { isConfigured } from '../../services/supabase';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -59,6 +60,14 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.card}>
+            {!isConfigured && (
+              <View style={styles.warningContainer}>
+                <Text style={styles.warningText}>
+                  ⚠️ Supabase credentials were not injected during APK build. Please add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY to GitHub Secrets.
+                </Text>
+              </View>
+            )}
+
             {errorMessage ? (
               <View style={styles.errorContainer}>
                 <Text style={styles.errorText}>{errorMessage}</Text>
@@ -151,6 +160,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 2,
+  },
+  warningContainer: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#F59E0B',
+    borderWidth: 1,
+    padding: 12,
+    borderRadius: THEME.borderRadius.sm,
+    marginBottom: 16,
+  },
+  warningText: {
+    color: '#92400E',
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 18,
   },
   errorContainer: {
     backgroundColor: '#FEE2E2',

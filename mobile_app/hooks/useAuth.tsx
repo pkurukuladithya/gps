@@ -26,25 +26,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    let isMounted = true;
+
+    // Hard safety timer: ensure loading never hangs past 1.5 seconds under any circumstance
+    const timeout = setTimeout(() => {
+      if (isMounted) setLoading(false);
+    }, 1500);
+
     // 1. Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        if (isMounted) {
+          setSession(session);
+          setUser(session?.user ?? null);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.warn('STELLA Auth: session retrieval error:', err);
+        if (isMounted) setLoading(false);
+      });
 
     // 2. Listen for auth state changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    try {
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (isMounted) {
+          setSession(session);
+          setUser(session?.user ?? null);
+          setLoading(false);
+        }
+      });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+      return () => {
+        isMounted = false;
+        clearTimeout(timeout);
+        subscription.unsubscribe();
+      };
+    } catch (e) {
+      if (isMounted) setLoading(false);
+      return () => {
+        isMounted = false;
+        clearTimeout(timeout);
+      };
+    }
   }, []);
 
   const signIn = async (email: string, password: string) => {

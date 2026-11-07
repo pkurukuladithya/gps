@@ -11,7 +11,7 @@ on:
 
 jobs:
   build-android:
-    name: Build Android Debug APK
+    name: Build Android Standalone APK
     runs-on: ubuntu-latest
 
     defaults:
@@ -51,7 +51,17 @@ jobs:
       - name: 📦 Install NPM dependencies
         run: npm ci
 
-      # 6. Generate Android native project via Expo Prebuild
+      # 6. Inject environment variables for Metro bundling
+      - name: 🔐 Inject Environment Variables into .env
+        run: |
+          if [ -n "${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}" ]; then
+            echo "EXPO_PUBLIC_SUPABASE_URL=${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}" >> .env
+          fi
+          if [ -n "${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}" ]; then
+            echo "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}" >> .env
+          fi
+
+      # 7. Generate Android native project via Expo Prebuild
       - name: 🏗️ Run Expo Prebuild for Android
         env:
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
@@ -59,33 +69,33 @@ jobs:
         run: |
           npx expo prebuild --platform android --clean --no-install
 
-      # 7. Setup Gradle with official action for optimized caching
+      # 8. Setup Gradle with official action for optimized caching
       - name: 🐘 Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      # 8. Build Android Debug APK with Gradle
-      - name: ⚙️ Assemble Debug APK with Gradle
+      # 9. Build Standalone Release APK signed with Debug Keystore (includes embedded offline bundle)
+      - name: ⚙️ Assemble Standalone Release APK
         working-directory: mobile_app/android
         env:
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
-      # 9. Locate generated APK
+      # 10. Locate generated APK
       - name: 🔍 Locate APK
         id: find_apk
         run: |
-          APK_PATH=$(find android/app/build/outputs/apk/debug -name "*.apk" | head -n 1)
+          APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" | head -n 1)
           if [ -z "$APK_PATH" ] || [ ! -f "$APK_PATH" ]; then
-            echo "❌ Error: APK file was not found in android/app/build/outputs/apk/debug"
+            echo "❌ Error: APK file was not found in android/app/build/outputs/apk"
             exit 1
           fi
           echo "Found APK at: $APK_PATH"
           echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
 
-      # 10. Upload APK as downloadable artifact
+      # 11. Upload APK as downloadable artifact
       - name: 🚀 Upload STELLA APK Artifact
         uses: actions/upload-artifact@v4
         with:
