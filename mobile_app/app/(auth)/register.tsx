@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -22,29 +22,16 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // OTP Verification state
-  const [isOtpStep, setIsOtpStep] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
-  const [resendCooldown, setResendCooldown] = useState(0);
+  // Email confirmation link state
+  const [isEmailSent, setIsEmailSent] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
 
-  const { signUp, verifyOtp, resendOtp } = useAuth();
+  const { signUp } = useAuth();
   const router = useRouter();
-
-  useEffect(() => {
-    let timer: any;
-    if (resendCooldown > 0) {
-      timer = setInterval(() => {
-        setResendCooldown((prev) => prev - 1);
-      }, 1000);
-    }
-    return () => clearInterval(timer);
-  }, [resendCooldown]);
 
   const handleRegister = async () => {
     setErrorMessage(null);
-    setSuccessMessage(null);
 
     if (!email.trim() || !password || !confirmPassword) {
       setErrorMessage('Please fill in all fields.');
@@ -71,48 +58,9 @@ export default function RegisterScreen() {
       // Auto signed in (if email confirmations are disabled)
       router.replace('/dashboard');
     } else {
-      // Move to OTP Step
-      setIsOtpStep(true);
-      setResendCooldown(60);
-      setSuccessMessage(`A 6-digit verification code has been sent to ${email.trim()}.`);
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    setErrorMessage(null);
-    setSuccessMessage(null);
-
-    const cleanOtp = otpCode.trim();
-    if (!cleanOtp || cleanOtp.length < 6) {
-      setErrorMessage('Please enter the complete 6-digit verification code.');
-      return;
-    }
-
-    setLoading(true);
-    const { error, session } = await verifyOtp(email, cleanOtp);
-    setLoading(false);
-
-    if (error) {
-      setErrorMessage(error.message || 'Invalid verification code. Please check and try again.');
-    } else {
-      setSuccessMessage('Email verified successfully! Logging you in...');
-      setTimeout(() => {
-        router.replace('/dashboard');
-      }, 1000);
-    }
-  };
-
-  const handleResend = async () => {
-    if (resendCooldown > 0) return;
-    setErrorMessage(null);
-    setLoading(true);
-    const { error } = await resendOtp(email);
-    setLoading(false);
-    if (error) {
-      setErrorMessage(error.message || 'Failed to resend code.');
-    } else {
-      setResendCooldown(60);
-      setSuccessMessage('A new 6-digit code has been sent to your email.');
+      // Email link sent
+      setRegisteredEmail(email.trim());
+      setIsEmailSent(true);
     }
   };
 
@@ -129,8 +77,8 @@ export default function RegisterScreen() {
           <View style={styles.header}>
             <StellaLogo size="large" />
             <Text style={styles.subtitle}>
-              {isOtpStep
-                ? 'Verify Your Email Address'
+              {isEmailSent
+                ? 'Email Verification Required'
                 : 'Create your KARP v1.0 account'}
             </Text>
           </View>
@@ -142,80 +90,55 @@ export default function RegisterScreen() {
               </View>
             ) : null}
 
-            {successMessage ? (
-              <View style={styles.successContainer}>
-                <Text style={styles.successText}>{successMessage}</Text>
-              </View>
-            ) : null}
+            {isEmailSent ? (
+              /* EMAIL CONFIRMATION NOTICE */
+              <View style={styles.noticeContainer}>
+                <View style={styles.iconCircle}>
+                  <Text style={styles.iconSymbol}>✉</Text>
+                </View>
 
-            {isOtpStep ? (
-              /* OTP VERIFICATION STEP */
-              <View>
-                <Text style={styles.otpInstructions}>
-                  Enter the 6-digit one-time password (OTP) sent to:
+                <Text style={styles.noticeTitle}>Check Your Email</Text>
+                <Text style={styles.noticeDescription}>
+                  We have sent an activation link to:
                 </Text>
-                <Text style={styles.targetEmail}>{email}</Text>
+                <Text style={styles.targetEmail}>{registeredEmail}</Text>
 
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>6-DIGIT VERIFICATION CODE</Text>
-                  <TextInput
-                    style={[styles.input, styles.otpInput]}
-                    placeholder="000000"
-                    placeholderTextColor={THEME.colors.textMuted}
-                    keyboardType="number-pad"
-                    maxLength={6}
-                    value={otpCode}
-                    onChangeText={(t) => {
-                      setOtpCode(t);
-                      setErrorMessage(null);
-                    }}
-                  />
+                <View style={styles.instructionBox}>
+                  <Text style={styles.instructionText}>
+                    1. Open the email in your phone or browser.
+                  </Text>
+                  <Text style={styles.instructionText}>
+                    2. Tap the <Text style={{ fontWeight: '800' }}>Confirm email address</Text> button.
+                  </Text>
+                  <Text style={styles.instructionText}>
+                    3. Return here and sign in with your credentials.
+                  </Text>
                 </View>
 
                 <Button
-                  title="VERIFY & SIGN IN"
-                  onPress={handleVerifyOtp}
-                  loading={loading}
+                  title="PROCEED TO SIGN IN"
+                  onPress={() => router.replace('/(auth)/login')}
                   style={styles.submitBtn}
                 />
 
-                <View style={styles.otpActions}>
-                  <TouchableOpacity
-                    onPress={handleResend}
-                    disabled={resendCooldown > 0}
-                  >
-                    <Text
-                      style={[
-                        styles.resendText,
-                        resendCooldown > 0 && styles.resendDisabled,
-                      ]}
-                    >
-                      {resendCooldown > 0
-                        ? `Resend code in ${resendCooldown}s`
-                        : 'Resend Verification Code'}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={() => {
-                      setIsOtpStep(false);
-                      setErrorMessage(null);
-                      setSuccessMessage(null);
-                    }}
-                    style={styles.backEmailBtn}
-                  >
-                    <Text style={styles.backEmailText}>Edit email address</Text>
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity
+                  onPress={() => {
+                    setIsEmailSent(false);
+                    setErrorMessage(null);
+                  }}
+                  style={styles.backBtn}
+                >
+                  <Text style={styles.backBtnText}>Wrong email? Register again</Text>
+                </TouchableOpacity>
               </View>
             ) : (
               /* REGISTRATION CREDENTIALS STEP */
               <View>
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>EMAIL ADDRESS</Text>
+                  <Text style={styles.label}>PILOT EMAIL</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="name@example.com"
+                    placeholder="pilot@karp.com"
                     placeholderTextColor={THEME.colors.textMuted}
                     autoCapitalize="none"
                     keyboardType="email-address"
@@ -261,14 +184,14 @@ export default function RegisterScreen() {
                 </View>
 
                 <Button
-                  title="REGISTER"
+                  title="CREATE ACCOUNT"
                   onPress={handleRegister}
                   loading={loading}
                   style={styles.submitBtn}
                 />
 
                 <View style={styles.footerRow}>
-                  <Text style={styles.footerText}>Already have an account? </Text>
+                  <Text style={styles.footerText}>Already registered? </Text>
                   <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
                     <Text style={styles.linkText}>Sign In</Text>
                   </TouchableOpacity>
@@ -300,126 +223,136 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: THEME.colors.textMuted,
-    marginTop: 10,
-    fontWeight: '500',
+    marginTop: 8,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   card: {
     backgroundColor: THEME.colors.surface,
     borderRadius: THEME.borderRadius.lg,
     padding: THEME.spacing.lg,
-    borderWidth: 1,
-    borderColor: THEME.colors.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: THEME.colors.border,
   },
   errorContainer: {
-    backgroundColor: '#FEE2E2',
-    borderColor: THEME.colors.error,
+    backgroundColor: '#FEF2F2',
     borderWidth: 1,
-    padding: 12,
+    borderColor: '#F87171',
     borderRadius: THEME.borderRadius.sm,
-    marginBottom: 16,
+    padding: 10,
+    marginBottom: 14,
   },
   errorText: {
     color: '#991B1B',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
+    textAlign: 'center',
   },
-  successContainer: {
+  noticeContainer: {
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  iconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#ECFDF5',
-    borderColor: THEME.colors.success,
-    borderWidth: 1,
-    padding: 12,
-    borderRadius: THEME.borderRadius.sm,
-    marginBottom: 16,
+    borderWidth: 1.5,
+    borderColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
   },
-  successText: {
-    color: '#065F46',
-    fontSize: 13,
-    fontWeight: '600',
+  iconSymbol: {
+    fontSize: 26,
+    color: '#059669',
   },
-  otpInstructions: {
+  noticeTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: THEME.colors.navy,
+    marginBottom: 6,
+  },
+  noticeDescription: {
     fontSize: 13,
     color: THEME.colors.textMuted,
     textAlign: 'center',
   },
   targetEmail: {
     fontSize: 14,
-    fontWeight: '800',
-    color: THEME.colors.primary,
-    textAlign: 'center',
-    marginTop: 4,
-    marginBottom: 18,
+    fontWeight: '700',
+    color: THEME.colors.navy,
+    marginTop: 2,
+    marginBottom: 16,
+  },
+  instructionBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: THEME.borderRadius.md,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    width: '100%',
+    marginBottom: 20,
+  },
+  instructionText: {
+    fontSize: 12,
+    color: '#334155',
+    marginVertical: 3,
+    lineHeight: 18,
   },
   inputGroup: {
-    marginBottom: 18,
+    marginBottom: 16,
   },
   label: {
     fontSize: 11,
     fontWeight: '700',
     color: THEME.colors.textMuted,
-    letterSpacing: 0.8,
     marginBottom: 6,
+    letterSpacing: 0.5,
   },
   input: {
     height: 48,
+    backgroundColor: '#FAFAF8',
     borderWidth: 1,
     borderColor: THEME.colors.border,
     borderRadius: THEME.borderRadius.md,
     paddingHorizontal: 14,
-    fontSize: 15,
+    fontSize: 14,
     color: THEME.colors.text,
-    backgroundColor: '#FAFAFA',
-  },
-  otpInput: {
-    fontSize: 24,
-    letterSpacing: 8,
-    textAlign: 'center',
-    fontWeight: '800',
-    color: '#0F172A',
   },
   submitBtn: {
     marginTop: 8,
+    height: 50,
+    width: '100%',
   },
-  otpActions: {
-    marginTop: 18,
-    alignItems: 'center',
+  backBtn: {
+    marginTop: 14,
+    paddingVertical: 6,
   },
-  resendText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: THEME.colors.primary,
-  },
-  resendDisabled: {
-    color: THEME.colors.textMuted,
-  },
-  backEmailBtn: {
-    marginTop: 12,
-  },
-  backEmailText: {
+  backBtnText: {
     fontSize: 12,
+    fontWeight: '700',
     color: THEME.colors.textMuted,
-    textDecorationLine: 'underline',
   },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
     marginTop: 20,
   },
   footerText: {
-    fontSize: 14,
+    fontSize: 13,
     color: THEME.colors.textMuted,
   },
   linkText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: THEME.colors.primary,
-    textDecorationLine: 'underline',
   },
 });
