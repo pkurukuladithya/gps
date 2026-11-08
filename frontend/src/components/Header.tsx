@@ -25,17 +25,19 @@ export const Header: React.FC = () => {
         <div className="flex items-center justify-between h-16">
           {/* Brand */}
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-md">
-              <div className="w-4 h-4 rounded-full bg-charcoal flex items-center justify-center">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-              </div>
-            </div>
+            <img
+              src="/app_icon.jpg"
+              alt="KARP Logo"
+              className="w-10 h-10 rounded-xl object-cover shadow-sm border border-navy/20"
+            />
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-extrabold text-xl tracking-wider text-charcoal">STELLA</span>
-                <span className="bg-charcoal text-primary text-xs font-bold px-2 py-0.5 rounded">LIVE GPS</span>
+                <span className="font-black text-xl tracking-wider text-navy">KARP</span>
+                <span className="bg-primary text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded shadow-sm">
+                  v1.0 ADAS
+                </span>
               </div>
-              <p className="text-[11px] text-muted hidden sm:block">Smart Tracking, Exploration & Location Live Analytics</p>
+              <p className="text-[11px] text-muted hidden sm:block">Smart ADAS • Cruise System • Fleet Telemetry</p>
             </div>
           </div>
 
@@ -43,34 +45,34 @@ export const Header: React.FC = () => {
           <nav className="flex space-x-1 sm:space-x-4">
             <Link
               to="/"
-              className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition ${
+              className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-bold transition ${
                 isActive('/')
-                  ? 'bg-primary text-charcoal shadow-sm'
-                  : 'text-muted hover:text-charcoal hover:bg-canvas'
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'text-muted hover:text-navy hover:bg-slate-100'
               }`}
             >
               <Activity className="w-4 h-4" />
-              <span>Live Map</span>
+              <span>Live Telemetry</span>
             </Link>
 
             <Link
               to="/history"
-              className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition ${
+              className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-bold transition ${
                 isActive('/history')
-                  ? 'bg-primary text-charcoal shadow-sm'
-                  : 'text-muted hover:text-charcoal hover:bg-canvas'
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'text-muted hover:text-navy hover:bg-slate-100'
               }`}
             >
               <History className="w-4 h-4" />
-              <span>Trip History</span>
+              <span>Cruise Logs</span>
             </Link>
 
             <Link
               to="/analytics"
-              className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition ${
+              className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-bold transition ${
                 isActive('/analytics')
-                  ? 'bg-primary text-charcoal shadow-sm'
-                  : 'text-muted hover:text-charcoal hover:bg-canvas'
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'text-muted hover:text-navy hover:bg-slate-100'
               }`}
             >
               <BarChart3 className="w-4 h-4" />

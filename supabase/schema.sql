@@ -1,5 +1,5 @@
--- STELLA: Smart Tracking, Exploration & Location Live Analytics
--- Supabase PostgreSQL Schema & Security Policies
+-- KARP v1.0: Smart ADAS • Cruise System • Fleet Management System
+-- Supabase PostgreSQL Master Schema & Security Policies
 
 -- 1. Create trips table
 CREATE TABLE IF NOT EXISTS public.trips (
@@ -13,9 +13,10 @@ CREATE TABLE IF NOT EXISTS public.trips (
 );
 
 -- 2. Create location_history table
+-- Note: trip_id is NULLABLE to support standby (3s) telemetry before a journey starts
 CREATE TABLE IF NOT EXISTS public.location_history (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    trip_id UUID NOT NULL REFERENCES public.trips(id) ON DELETE CASCADE,
+    trip_id UUID REFERENCES public.trips(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     latitude DOUBLE PRECISION NOT NULL,
     longitude DOUBLE PRECISION NOT NULL,
@@ -74,18 +75,19 @@ BEGIN
         USING (auth.uid() = user_id);
     END IF;
 
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'location_history' AND policyname = 'Users can insert their own locations') THEN
-        CREATE POLICY "Users can insert their own locations"
-        ON public.location_history FOR INSERT
-        WITH CHECK (
-            auth.uid() = user_id AND
+    DROP POLICY IF EXISTS "Users can insert their own locations" ON public.location_history;
+    CREATE POLICY "Users can insert their own locations"
+    ON public.location_history FOR INSERT
+    WITH CHECK (
+        auth.uid() = user_id AND (
+            trip_id IS NULL OR
             EXISTS (
                 SELECT 1 FROM public.trips
                 WHERE trips.id = location_history.trip_id
                 AND trips.user_id = auth.uid()
             )
-        );
-    END IF;
+        )
+    );
 
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'location_history' AND policyname = 'Users can delete their own locations') THEN
         CREATE POLICY "Users can delete their own locations"
@@ -95,21 +97,17 @@ BEGIN
 END $$;
 
 -- 7. Realtime Publication Setup
--- Enable replica identity full for precise realtime payloads
 ALTER TABLE public.trips REPLICA IDENTITY FULL;
 ALTER TABLE public.location_history REPLICA IDENTITY FULL;
 
--- Ensure tables are added to the supabase_realtime publication
 DO $$
 BEGIN
     BEGIN
         ALTER PUBLICATION supabase_realtime ADD TABLE public.location_history;
-    EXCEPTION
-        WHEN duplicate_object THEN NULL;
+    EXCEPTION WHEN duplicate_object THEN NULL;
     END;
     BEGIN
         ALTER PUBLICATION supabase_realtime ADD TABLE public.trips;
-    EXCEPTION
-        WHEN duplicate_object THEN NULL;
+    EXCEPTION WHEN duplicate_object THEN NULL;
     END;
 END $$;

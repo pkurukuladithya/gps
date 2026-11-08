@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
   },
   highlightCard: {
     borderColor: THEME.colors.primary,
-    backgroundColor: '#FFFCF0',
+    backgroundColor: '#FFF5ED',
   },
   title: {
     fontSize: 11,

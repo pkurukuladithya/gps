@@ -56,7 +56,7 @@ export default function LoginScreen() {
         >
           <View style={styles.header}>
             <StellaLogo size="large" />
-            <Text style={styles.subtitle}>Sign in to your GPS tracking account</Text>
+            <Text style={styles.subtitle}>Sign in to KARP v1.0 ADAS Fleet</Text>
           </View>
 
           <View style={styles.card}>

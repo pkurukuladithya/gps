@@ -34,13 +34,13 @@ export default function TripSummaryScreen() {
         <View style={styles.header}>
           <StellaLogo size="medium" />
           <View style={styles.completedBadge}>
-            <Text style={styles.completedBadgeText}>TRIP COMPLETED</Text>
+            <Text style={styles.completedBadgeText}>JOURNEY LOGGED</Text>
           </View>
         </View>
 
         <View style={styles.tripNameCard}>
-          <Text style={styles.tripNameLabel}>JOURNEY SUMMARY</Text>
-          <Text style={styles.tripNameTitle}>{params.tripName || 'STELLA Journey'}</Text>
+          <Text style={styles.tripNameLabel}>KARP CRUISE SUMMARY</Text>
+          <Text style={styles.tripNameTitle}>{params.tripName || 'KARP Journey'}</Text>
         </View>
 
         {/* Primary Metrics Grid */}

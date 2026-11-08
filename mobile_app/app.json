@@ -1,27 +1,27 @@
 {
   "expo": {
-    "name": "STELLA",
-    "slug": "stella-tracker",
+    "name": "KARP v1.0",
+    "slug": "karp-tracker",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "scheme": "stella",
+    "icon": "./assets/app_icon.jpg",
+    "scheme": "karp",
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/app_icon.jpg",
       "resizeMode": "contain",
-      "backgroundColor": "#F7F7F5"
+      "backgroundColor": "#F8FAFC"
     },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#F5C400"
+        "foregroundImage": "./assets/app_icon.jpg",
+        "backgroundColor": "#0B3C5D"
       },
-      "package": "com.stella.tracker",
+      "package": "com.karp.tracker",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
@@ -33,14 +33,14 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/app_icon.jpg"
     },
     "plugins": [
       "expo-router",
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow STELLA to track your journey live with high-accuracy GPS."
+          "locationWhenInUsePermission": "Allow KARP to stream telemetry and live tracking with high-accuracy GPS."
         }
       ]
     ]

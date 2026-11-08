@@ -1,118 +1,121 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { THEME } from '../constants/theme';
 
-interface StellaLogoProps {
+interface KarpLogoProps {
   size?: 'small' | 'medium' | 'large';
   showSubtitle?: boolean;
 }
 
-export const StellaLogo: React.FC<StellaLogoProps> = ({ size = 'medium', showSubtitle = true }) => {
-  const getIconSize = () => {
+export const KarpLogo: React.FC<KarpLogoProps> = ({ size = 'medium', showSubtitle = true }) => {
+  const getIconDim = () => {
     switch (size) {
       case 'small':
-        return 32;
+        return 36;
       case 'large':
-        return 56;
+        return 64;
       default:
-        return 44;
+        return 48;
     }
   };
 
   const getTitleSize = () => {
     switch (size) {
       case 'small':
-        return 18;
+        return 20;
       case 'large':
-        return 30;
+        return 32;
       default:
-        return 24;
+        return 26;
     }
   };
 
-  const iconDim = getIconSize();
+  const iconDim = getIconDim();
 
   return (
     <View style={styles.container}>
-      <View style={[styles.iconContainer, { width: iconDim, height: iconDim, borderRadius: iconDim / 2 }]}>
-        <View style={styles.pulseRing} />
-        <View style={styles.corePin} />
-      </View>
+      <Image
+        source={require('../assets/app_icon.jpg')}
+        style={[styles.iconImage, { width: iconDim, height: iconDim, borderRadius: iconDim * 0.22 }]}
+        resizeMode="contain"
+      />
       <View style={styles.textContainer}>
         <View style={styles.brandRow}>
-          <Text style={[styles.title, { fontSize: getTitleSize() }]}>STELLA</Text>
-          <View style={styles.liveTag}>
-            <Text style={styles.liveText}>GPS</Text>
+          <Text style={[styles.titleK, { fontSize: getTitleSize() }]}>K</Text>
+          <Text style={[styles.titleA, { fontSize: getTitleSize() }]}>A</Text>
+          <Text style={[styles.titleR, { fontSize: getTitleSize() }]}>R</Text>
+          <Text style={[styles.titleP, { fontSize: getTitleSize() }]}>P</Text>
+          <View style={styles.vTag}>
+            <Text style={styles.vText}>v1.0</Text>
           </View>
         </View>
         {showSubtitle && (
-          <Text style={styles.subtitle}>Smart Tracking & Location Live Analytics</Text>
+          <Text style={styles.subtitle}>smart adas • cruise system • fleet</Text>
         )}
       </View>
     </View>
   );
 };
 
+// Backwards-compatible alias
+export const StellaLogo = KarpLogo;
+
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  iconContainer: {
-    backgroundColor: THEME.colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
+  iconImage: {
     marginRight: 12,
-    shadowColor: '#F5C400',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  pulseRing: {
-    position: 'absolute',
-    width: '70%',
-    height: '70%',
-    borderRadius: 999,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    opacity: 0.8,
-  },
-  corePin: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: THEME.colors.text,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
   },
   textContainer: {
     justifyContent: 'center',
   },
   brandRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'baseline',
   },
-  title: {
+  titleK: {
     fontWeight: '900',
-    color: THEME.colors.text,
-    letterSpacing: 1.5,
+    color: '#FF5500', // KARP Orange
+    letterSpacing: 0.5,
   },
-  liveTag: {
-    backgroundColor: THEME.colors.text,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+  titleA: {
+    fontWeight: '900',
+    color: '#FF5500',
+    letterSpacing: 0.5,
+  },
+  titleR: {
+    fontWeight: '900',
+    color: '#0B3C5D', // KARP Navy
+    letterSpacing: 0.5,
+  },
+  titleP: {
+    fontWeight: '900',
+    color: '#0B3C5D',
+    letterSpacing: 0.5,
+  },
+  vTag: {
+    backgroundColor: '#FF5500',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
     borderRadius: 4,
-    marginLeft: 8,
+    marginLeft: 6,
   },
-  liveText: {
-    color: THEME.colors.primary,
+  vText: {
+    color: '#FFFFFF',
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '900',
     letterSpacing: 0.5,
   },
   subtitle: {
     fontSize: 11,
     color: THEME.colors.textMuted,
-    fontWeight: '500',
+    fontWeight: '600',
     marginTop: 2,
+    letterSpacing: 0.3,
   },
 });

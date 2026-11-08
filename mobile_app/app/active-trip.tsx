@@ -264,7 +264,7 @@ export default function ActiveTripScreen() {
         pathname: '/trip-summary',
         params: {
           tripId: tripId || '',
-          tripName: params.tripName || 'STELLA Trip',
+          tripName: params.tripName || 'KARP Trip',
           startedAt: startedAtIso,
           endedAt: new Date().toISOString(),
           durationSeconds: elapsedSeconds.toString(),
@@ -285,12 +285,12 @@ export default function ActiveTripScreen() {
         {/* Active Banner */}
         <View style={styles.activeBanner}>
           <View style={styles.pulseDot} />
-          <Text style={styles.bannerText}>ACTIVE TRIP TRACKING</Text>
+          <Text style={styles.bannerText}>KARP ACTIVE CRUISE TELEMETRY (1s)</Text>
         </View>
 
         {/* Large Speed Display */}
         <View style={styles.speedHero}>
-          <Text style={styles.speedLabel}>CURRENT SPEED</Text>
+          <Text style={styles.speedLabel}>GROUND SPEED</Text>
           <View style={styles.speedNumberRow}>
             <Text style={styles.speedNumber}>{currentSpeedKmh.toFixed(1)}</Text>
             <Text style={styles.speedUnit}>KM/H</Text>
@@ -299,7 +299,7 @@ export default function ActiveTripScreen() {
 
         {/* Big Elapsed Timer */}
         <View style={styles.timerCard}>
-          <Text style={styles.timerLabel}>TRIP DURATION</Text>
+          <Text style={styles.timerLabel}>JOURNEY ELAPSED TIME</Text>
           <Text style={styles.timerValue}>{formatElapsedTime(elapsedSeconds)}</Text>
         </View>
 
@@ -324,7 +324,7 @@ export default function ActiveTripScreen() {
 
         {/* Realtime GPS Fix Coordinates */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>SATELLITE POSITION & FIX</Text>
+          <Text style={styles.cardTitle}>SATELLITE POSITION & TELEMETRY</Text>
           <View style={styles.coordRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.coordLabel}>LATITUDE</Text>
@@ -375,7 +375,7 @@ export default function ActiveTripScreen() {
         {/* Stop Action */}
         <View style={styles.actionContainer}>
           <Button
-            title="STOP TRIP"
+            title="FINISH & STOP TRIP"
             variant="danger"
             onPress={handleStopTrip}
             loading={isStopping}
@@ -401,10 +401,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FEF3C7',
-    borderWidth: 1,
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1.5,
     borderColor: THEME.colors.primary,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: THEME.borderRadius.md,
     marginBottom: 16,
   },
@@ -412,14 +412,14 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#D97706',
+    backgroundColor: THEME.colors.primary,
     marginRight: 8,
   },
   bannerText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#92400E',
-    letterSpacing: 1,
+    color: THEME.colors.navy,
+    letterSpacing: 0.8,
   },
   speedHero: {
     backgroundColor: THEME.colors.surface,
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   timerCard: {
-    backgroundColor: '#1C1C1C',
+    backgroundColor: THEME.colors.navy,
     borderRadius: THEME.borderRadius.md,
     padding: 16,
     alignItems: 'center',
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
   timerLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#A0A0A0',
+    color: '#94A3B8',
     letterSpacing: 1,
     marginBottom: 4,
   },

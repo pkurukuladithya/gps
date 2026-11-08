@@ -1,19 +1,22 @@
 export const THEME = {
   colors: {
-    primary: '#F5C400',
-    primaryDark: '#D4A800',
-    primaryLight: '#FFF2B2',
-    background: '#F7F7F5',
+    primary: '#FF5500',       // KARP Vibrant Orange
+    primaryDark: '#D94500',
+    primaryLight: '#FFE5D6',
+    secondary: '#0B3C5D',     // KARP Deep Navy Blue
+    secondaryDark: '#072A42',
+    secondaryLight: '#E0F2FE',
+    background: '#F8FAFC',    // Modern Slate/Ice Background
     surface: '#FFFFFF',
-    text: '#1C1C1C',
-    textMuted: '#777777',
-    border: '#E8E8E4',
+    text: '#0F172A',
+    textMuted: '#64748B',
+    border: '#E2E8F0',
     card: '#FFFFFF',
     success: '#10B981',
     warning: '#F59E0B',
     error: '#EF4444',
-    info: '#3B82F6',
-    overlay: 'rgba(0,0,0,0.4)',
+    info: '#0284C7',
+    overlay: 'rgba(15, 23, 42, 0.4)',
   },
   spacing: {
     xs: 4,
@@ -32,25 +35,25 @@ export const THEME = {
     title: {
       fontSize: 24,
       fontWeight: '700' as const,
-      color: '#1C1C1C',
+      color: '#0F172A',
     },
     subtitle: {
       fontSize: 16,
       fontWeight: '600' as const,
-      color: '#1C1C1C',
+      color: '#0F172A',
     },
     body: {
       fontSize: 14,
-      color: '#1C1C1C',
+      color: '#0F172A',
     },
     caption: {
       fontSize: 12,
-      color: '#777777',
+      color: '#64748B',
     },
     metric: {
       fontSize: 42,
       fontWeight: '800' as const,
-      color: '#1C1C1C',
+      color: '#0F172A',
     },
   },
 };

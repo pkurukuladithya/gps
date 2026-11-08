@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
+import { useInactivityTimeout } from '../hooks/useInactivityTimeout';
 import {
   ResponsiveContainer,
   BarChart,
@@ -24,6 +25,7 @@ interface ChartDataPoint {
 
 export const AnalyticsPage: React.FC = () => {
   const { user } = useAuth();
+  useInactivityTimeout();
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [totalKm, setTotalKm] = useState(0);
   const [totalSec, setTotalSec] = useState(0);
@@ -189,7 +191,7 @@ export const AnalyticsPage: React.FC = () => {
                       fontSize: '12px',
                     }}
                   />
-                  <Bar dataKey="distanceKm" fill="#F5C400" radius={[4, 4, 0, 0]} name="Distance (km)" />
+                  <Bar dataKey="distanceKm" fill="#FF5500" radius={[4, 4, 0, 0]} name="Distance (km)" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -217,9 +219,9 @@ export const AnalyticsPage: React.FC = () => {
                   <Line
                     type="monotone"
                     dataKey="avgSpeedKmh"
-                    stroke="#1C1C1C"
+                    stroke="#0B3C5D"
                     strokeWidth={3}
-                    dot={{ r: 4, fill: '#F5C400' }}
+                    dot={{ r: 4, fill: '#FF5500' }}
                     name="Avg Speed (km/h)"
                   />
                 </LineChart>

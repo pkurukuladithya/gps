@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -24,8 +24,23 @@ export default function RegisterScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const { signUp } = useAuth();
+  // OTP Verification state
+  const [isOtpStep, setIsOtpStep] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  const { signUp, verifyOtp, resendOtp } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    let timer: any;
+    if (resendCooldown > 0) {
+      timer = setInterval(() => {
+        setResendCooldown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   const handleRegister = async () => {
     setErrorMessage(null);
@@ -53,14 +68,51 @@ export default function RegisterScreen() {
     if (error) {
       setErrorMessage(error.message || 'Failed to create account.');
     } else if (data?.session) {
-      // Auto signed in
+      // Auto signed in (if email confirmations are disabled)
       router.replace('/dashboard');
     } else {
-      // Email confirmation required or user created
-      setSuccessMessage('Registration successful! Please sign in with your credentials.');
+      // Move to OTP Step
+      setIsOtpStep(true);
+      setResendCooldown(60);
+      setSuccessMessage(`A 6-digit verification code has been sent to ${email.trim()}.`);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    const cleanOtp = otpCode.trim();
+    if (!cleanOtp || cleanOtp.length < 6) {
+      setErrorMessage('Please enter the complete 6-digit verification code.');
+      return;
+    }
+
+    setLoading(true);
+    const { error, session } = await verifyOtp(email, cleanOtp);
+    setLoading(false);
+
+    if (error) {
+      setErrorMessage(error.message || 'Invalid verification code. Please check and try again.');
+    } else {
+      setSuccessMessage('Email verified successfully! Logging you in...');
       setTimeout(() => {
-        router.replace('/(auth)/login');
-      }, 2000);
+        router.replace('/dashboard');
+      }, 1000);
+    }
+  };
+
+  const handleResend = async () => {
+    if (resendCooldown > 0) return;
+    setErrorMessage(null);
+    setLoading(true);
+    const { error } = await resendOtp(email);
+    setLoading(false);
+    if (error) {
+      setErrorMessage(error.message || 'Failed to resend code.');
+    } else {
+      setResendCooldown(60);
+      setSuccessMessage('A new 6-digit code has been sent to your email.');
     }
   };
 
@@ -76,7 +128,11 @@ export default function RegisterScreen() {
         >
           <View style={styles.header}>
             <StellaLogo size="large" />
-            <Text style={styles.subtitle}>Create your STELLA tracking account</Text>
+            <Text style={styles.subtitle}>
+              {isOtpStep
+                ? 'Verify Your Email Address'
+                : 'Create your KARP v1.0 account'}
+            </Text>
           </View>
 
           <View style={styles.card}>
@@ -92,68 +148,133 @@ export default function RegisterScreen() {
               </View>
             ) : null}
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>EMAIL ADDRESS</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="name@example.com"
-                placeholderTextColor={THEME.colors.textMuted}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                autoComplete="email"
-                value={email}
-                onChangeText={(text) => {
-                  setEmail(text);
-                  setErrorMessage(null);
-                }}
-              />
-            </View>
+            {isOtpStep ? (
+              /* OTP VERIFICATION STEP */
+              <View>
+                <Text style={styles.otpInstructions}>
+                  Enter the 6-digit one-time password (OTP) sent to:
+                </Text>
+                <Text style={styles.targetEmail}>{email}</Text>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>PASSWORD</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="At least 6 characters"
-                placeholderTextColor={THEME.colors.textMuted}
-                secureTextEntry
-                autoCapitalize="none"
-                value={password}
-                onChangeText={(text) => {
-                  setPassword(text);
-                  setErrorMessage(null);
-                }}
-              />
-            </View>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>6-DIGIT VERIFICATION CODE</Text>
+                  <TextInput
+                    style={[styles.input, styles.otpInput]}
+                    placeholder="000000"
+                    placeholderTextColor={THEME.colors.textMuted}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    value={otpCode}
+                    onChangeText={(t) => {
+                      setOtpCode(t);
+                      setErrorMessage(null);
+                    }}
+                  />
+                </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>CONFIRM PASSWORD</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Repeat password"
-                placeholderTextColor={THEME.colors.textMuted}
-                secureTextEntry
-                autoCapitalize="none"
-                value={confirmPassword}
-                onChangeText={(text) => {
-                  setConfirmPassword(text);
-                  setErrorMessage(null);
-                }}
-              />
-            </View>
+                <Button
+                  title="VERIFY & SIGN IN"
+                  onPress={handleVerifyOtp}
+                  loading={loading}
+                  style={styles.submitBtn}
+                />
 
-            <Button
-              title="CREATE ACCOUNT"
-              onPress={handleRegister}
-              loading={loading}
-              style={styles.submitBtn}
-            />
+                <View style={styles.otpActions}>
+                  <TouchableOpacity
+                    onPress={handleResend}
+                    disabled={resendCooldown > 0}
+                  >
+                    <Text
+                      style={[
+                        styles.resendText,
+                        resendCooldown > 0 && styles.resendDisabled,
+                      ]}
+                    >
+                      {resendCooldown > 0
+                        ? `Resend code in ${resendCooldown}s`
+                        : 'Resend Verification Code'}
+                    </Text>
+                  </TouchableOpacity>
 
-            <View style={styles.footerRow}>
-              <Text style={styles.footerText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
-                <Text style={styles.linkText}>Sign In</Text>
-              </TouchableOpacity>
-            </View>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setIsOtpStep(false);
+                      setErrorMessage(null);
+                      setSuccessMessage(null);
+                    }}
+                    style={styles.backEmailBtn}
+                  >
+                    <Text style={styles.backEmailText}>Edit email address</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              /* REGISTRATION CREDENTIALS STEP */
+              <View>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>EMAIL ADDRESS</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="name@example.com"
+                    placeholderTextColor={THEME.colors.textMuted}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    autoComplete="email"
+                    value={email}
+                    onChangeText={(text) => {
+                      setEmail(text);
+                      setErrorMessage(null);
+                    }}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>PASSWORD</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="At least 6 characters"
+                    placeholderTextColor={THEME.colors.textMuted}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    value={password}
+                    onChangeText={(text) => {
+                      setPassword(text);
+                      setErrorMessage(null);
+                    }}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>CONFIRM PASSWORD</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Repeat password"
+                    placeholderTextColor={THEME.colors.textMuted}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    value={confirmPassword}
+                    onChangeText={(text) => {
+                      setConfirmPassword(text);
+                      setErrorMessage(null);
+                    }}
+                  />
+                </View>
+
+                <Button
+                  title="REGISTER"
+                  onPress={handleRegister}
+                  loading={loading}
+                  style={styles.submitBtn}
+                />
+
+                <View style={styles.footerRow}>
+                  <Text style={styles.footerText}>Already have an account? </Text>
+                  <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
+                    <Text style={styles.linkText}>Sign In</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -176,12 +297,13 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 28,
   },
   subtitle: {
     fontSize: 14,
     color: THEME.colors.textMuted,
-    marginTop: 12,
+    marginTop: 10,
+    fontWeight: '500',
   },
   card: {
     backgroundColor: THEME.colors.surface,
@@ -206,7 +328,7 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#991B1B',
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   successContainer: {
     backgroundColor: '#ECFDF5',
@@ -219,7 +341,20 @@ const styles = StyleSheet.create({
   successText: {
     color: '#065F46',
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  otpInstructions: {
+    fontSize: 13,
+    color: THEME.colors.textMuted,
+    textAlign: 'center',
+  },
+  targetEmail: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: THEME.colors.primary,
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 18,
   },
   inputGroup: {
     marginBottom: 18,
@@ -241,8 +376,35 @@ const styles = StyleSheet.create({
     color: THEME.colors.text,
     backgroundColor: '#FAFAFA',
   },
+  otpInput: {
+    fontSize: 24,
+    letterSpacing: 8,
+    textAlign: 'center',
+    fontWeight: '800',
+    color: '#0F172A',
+  },
   submitBtn: {
     marginTop: 8,
+  },
+  otpActions: {
+    marginTop: 18,
+    alignItems: 'center',
+  },
+  resendText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: THEME.colors.primary,
+  },
+  resendDisabled: {
+    color: THEME.colors.textMuted,
+  },
+  backEmailBtn: {
+    marginTop: 12,
+  },
+  backEmailText: {
+    fontSize: 12,
+    color: THEME.colors.textMuted,
+    textDecorationLine: 'underline',
   },
   footerRow: {
     flexDirection: 'row',
@@ -257,7 +419,7 @@ const styles = StyleSheet.create({
   linkText: {
     fontSize: 14,
     fontWeight: '700',
-    color: THEME.colors.text,
+    color: THEME.colors.primary,
     textDecorationLine: 'underline',
   },
 });

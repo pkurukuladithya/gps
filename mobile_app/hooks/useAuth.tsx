@@ -8,6 +8,8 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null; data: any }>;
+  verifyOtp: (email: string, token: string) => Promise<{ error: Error | null; session: Session | null }>;
+  resendOtp: (email: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<{ error: Error | null }>;
 }
 
@@ -17,6 +19,8 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signIn: async () => ({ error: null }),
   signUp: async () => ({ error: null, data: null }),
+  verifyOtp: async () => ({ error: null, session: null }),
+  resendOtp: async () => ({ error: null }),
   signOut: async () => ({ error: null }),
 });
 
@@ -44,7 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       })
       .catch((err) => {
-        console.warn('STELLA Auth: session retrieval error:', err);
+        console.warn('KARP Auth: session retrieval error:', err);
         if (isMounted) setLoading(false);
       });
 
@@ -98,6 +102,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const verifyOtp = async (email: string, token: string) => {
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: token.trim(),
+        type: 'signup',
+      });
+      if (error) {
+        // Fallback to 'email' type if 'signup' is not accepted
+        const fallback = await supabase.auth.verifyOtp({
+          email: email.trim(),
+          token: token.trim(),
+          type: 'email',
+        });
+        if (fallback.error) return { error: fallback.error, session: null };
+        if (fallback.data?.session) {
+          setSession(fallback.data.session);
+          setUser(fallback.data.session.user);
+        }
+        return { error: null, session: fallback.data?.session || null };
+      }
+      if (data?.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+      }
+      return { error: null, session: data?.session || null };
+    } catch (err: any) {
+      return { error: err, session: null };
+    }
+  };
+
+  const resendOtp = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email.trim(),
+      });
+      return { error };
+    } catch (err: any) {
+      return { error: err };
+    }
+  };
+
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -108,7 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, verifyOtp, resendOtp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

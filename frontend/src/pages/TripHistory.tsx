@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../hooks/useAuth';
+import { useInactivityTimeout } from '../hooks/useInactivityTimeout';
 import { LiveMap, LocationPoint } from '../components/LiveMap';
 import { calculateHaversineDistance, speedMpsToKmh, formatDuration } from '../utils/geo';
 import { Route, Clock, Calendar, ChevronRight, X, Play, CheckCircle } from 'lucide-react';
@@ -20,6 +21,7 @@ interface TripWithStats {
 
 export const TripHistory: React.FC = () => {
   const { user } = useAuth();
+  useInactivityTimeout();
   const [trips, setTrips] = useState<TripWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTrip, setSelectedTrip] = useState<TripWithStats | null>(null);
@@ -144,9 +146,9 @@ export const TripHistory: React.FC = () => {
       ) : trips.length === 0 ? (
         <div className="bg-surface rounded-xl p-12 text-center border border-borderline">
           <Route className="w-10 h-10 text-muted mx-auto mb-3" />
-          <h3 className="text-base font-bold text-charcoal">No Trips Recorded Yet</h3>
+          <h3 className="text-base font-bold text-charcoal">No Cruise Records Logged Yet</h3>
           <p className="text-xs text-muted mt-1 max-w-sm mx-auto">
-            Open the STELLA Tracker Android app, grant location permissions, and press "START TRIP" to begin recording.
+            Open the KARP v1.0 Android app, sign in as pilot, and press "START TRIP" to begin streaming telemetry.
           </p>
         </div>
       ) : (

@@ -1,4 +1,4 @@
-name: Build STELLA Android APK
+name: Build KARP v1.0 Android APK
 
 on:
   push:
@@ -97,10 +97,10 @@ jobs:
           echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
 
       # 11. Upload APK as downloadable artifact
-      - name: 🚀 Upload STELLA APK Artifact
+      - name: 🚀 Upload KARP v1.0 APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: STELLA-Android-APK
+          name: KARP-v1.0-Android-APK
           path: mobile_app/${{ steps.find_apk.outputs.apk_path }}
           retention-days: 30
           if-no-files-found: error

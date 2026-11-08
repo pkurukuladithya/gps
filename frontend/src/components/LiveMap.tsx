@@ -78,9 +78,9 @@ export const LiveMap: React.FC<LiveMapProps> = ({
           <Polyline
             positions={polylinePositions}
             pathOptions={{
-              color: '#1C1C1C',
+              color: '#0B3C5D',
               weight: 5,
-              opacity: 0.85,
+              opacity: 0.9,
               lineJoin: 'round',
             }}
           />
@@ -159,11 +159,11 @@ export const LiveMap: React.FC<LiveMapProps> = ({
         </div>
       ) : (
         <div className="absolute inset-0 z-[300] bg-canvas/40 backdrop-blur-[1px] flex items-center justify-center pointer-events-none">
-          <div className="bg-surface p-4 rounded-xl shadow-lg border border-borderline text-center max-w-sm">
-            <Navigation className="w-8 h-8 text-primary-dark mx-auto mb-2 animate-bounce" />
-            <h4 className="text-sm font-bold text-charcoal">Awaiting GPS Live Stream</h4>
-            <p className="text-xs text-muted mt-1">
-              Start an active journey on your Android phone to transmit real-time GPS coordinates.
+          <div className="bg-surface p-5 rounded-2xl shadow-xl border border-slate-200 text-center max-w-sm">
+            <Navigation className="w-9 h-9 text-primary mx-auto mb-2 animate-bounce" />
+            <h4 className="text-sm font-extrabold text-navy">Awaiting KARP ADAS Telemetry</h4>
+            <p className="text-xs text-muted mt-1 font-medium">
+              Open the KARP v1.0 Android app to stream standby coordinates or initiate an active journey.
             </p>
           </div>
         </div>

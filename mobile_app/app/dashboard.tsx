@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -21,8 +21,8 @@ import {
   LocationReading,
 } from '../services/locationService';
 import { performFullSystemHealthCheck } from '../services/networkService';
-import { formatCoordinates, speedMpsToKmh } from '../utils/geo';
-import { formatTime, formatDateTime } from '../utils/time';
+import { speedMpsToKmh } from '../utils/geo';
+import { formatTime } from '../utils/time';
 
 export default function DashboardScreen() {
   const { user, signOut } = useAuth();
@@ -34,17 +34,18 @@ export default function DashboardScreen() {
   // Connection states
   const [internetStatus, setInternetStatus] = useState<StatusType>('checking');
   const [supabaseStatus, setSupabaseStatus] = useState<StatusType>('checking');
-  const [supabaseMessage, setSupabaseMessage] = useState<string>('');
+  const [, setSupabaseMessage] = useState<string>('');
   const [gpsPermissionStatus, setGpsPermissionStatus] = useState<StatusType>('checking');
   const [gpsProviderStatus, setGpsProviderStatus] = useState<StatusType>('checking');
   const [locationAcquisitionStatus, setLocationAcquisitionStatus] = useState<StatusType>('checking');
+  const [standbyActive, setStandbyActive] = useState<boolean>(false);
 
   // Preview GPS fix
   const [currentLocation, setCurrentLocation] = useState<LocationReading | null>(null);
   const [isStartingTrip, setIsStartingTrip] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Update live clock every second
+  // Live clock
   useEffect(() => {
     const timer = setInterval(() => {
       setDeviceTime(new Date());
@@ -52,7 +53,7 @@ export default function DashboardScreen() {
     return () => clearInterval(timer);
   }, []);
 
-  // Full system check
+  // Full system check + activate Standby watcher
   const runSystemChecks = useCallback(async () => {
     // 1. Internet & Supabase
     setInternetStatus('checking');
@@ -78,7 +79,7 @@ export default function DashboardScreen() {
     const isProviderOn = await LocationService.checkProviderEnabled();
     setGpsProviderStatus(isProviderOn ? 'connected' : 'unavailable');
 
-    // 4. Location Acquisition
+    // 4. Initial Fix & Standby Watcher Activation (3s interval)
     setLocationAcquisitionStatus('checking');
     if (hasPermission && isProviderOn) {
       const fix = await LocationService.getCurrentLocation();
@@ -88,13 +89,28 @@ export default function DashboardScreen() {
       } else {
         setLocationAcquisitionStatus('unavailable');
       }
+
+      // If user is logged in, start standby watcher (3-second cadence to Supabase)
+      if (user) {
+        const started = await LocationService.startStandbyWatcher(user.id, (reading) => {
+          setCurrentLocation(reading);
+          setLocationAcquisitionStatus('connected');
+        });
+        setStandbyActive(started);
+      }
     } else {
       setLocationAcquisitionStatus('unavailable');
+      setStandbyActive(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     runSystemChecks();
+
+    return () => {
+      // Clean up standby watcher when leaving dashboard
+      LocationService.stopStandbyWatcher();
+    };
   }, [runSystemChecks]);
 
   const onRefresh = async () => {
@@ -112,7 +128,7 @@ export default function DashboardScreen() {
     if (gpsPermissionStatus !== 'connected') {
       Alert.alert(
         'GPS Permission Required',
-        'STELLA requires high-accuracy foreground location permission to track your trip. Please grant permission in device settings.'
+        'KARP v1.0 requires high-accuracy foreground location permission to track your trip. Please grant permission in device settings.'
       );
       return;
     }
@@ -128,15 +144,17 @@ export default function DashboardScreen() {
     if (internetStatus !== 'connected' || supabaseStatus !== 'connected') {
       Alert.alert(
         'Network Connection Required',
-        'A working internet connection to Supabase is required to create your active trip.'
+        'A working internet connection to Supabase is required to start your journey.'
       );
       return;
     }
 
     try {
       setIsStartingTrip(true);
+      // Automatically stops standby watcher and elevates to active trip
       const trip = await LocationService.startTrip(user.id);
       setIsStartingTrip(false);
+      setStandbyActive(false);
 
       // Navigate to active trip screen
       router.push({
@@ -154,12 +172,13 @@ export default function DashboardScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to log out of STELLA?', [
+    Alert.alert('Sign Out', 'Are you sure you want to log out of KARP v1.0?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Sign Out',
         style: 'destructive',
         onPress: async () => {
+          LocationService.stopStandbyWatcher();
           await signOut();
           router.replace('/(auth)/login');
         },
@@ -184,21 +203,36 @@ export default function DashboardScreen() {
         <View style={styles.headerRow}>
           <StellaLogo size="medium" />
           <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
-            <Text style={styles.logoutText}>Log Out</Text>
+            <Text style={styles.logoutText}>Sign Out</Text>
           </TouchableOpacity>
         </View>
 
         {/* User & Live Clock Bar */}
         <View style={styles.statusBar}>
-          <View>
-            <Text style={styles.userLabel}>ACCOUNT</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.userLabel}>PILOT ACCOUNT</Text>
             <Text style={styles.userEmail} numberOfLines={1}>
-              {user?.email || 'Authenticated User'}
+              {user?.email || 'Authenticated Pilot'}
             </Text>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
-            <Text style={styles.userLabel}>DEVICE CLOCK</Text>
+            <Text style={styles.userLabel}>TELEMETRY CLOCK</Text>
             <Text style={styles.clockText}>{formatTime(deviceTime)}</Text>
+          </View>
+        </View>
+
+        {/* Standby Live Beacon Banner */}
+        <View style={[styles.standbyBanner, standbyActive ? styles.standbyBannerActive : styles.standbyBannerStandby]}>
+          <View style={[styles.pulseDot, standbyActive ? styles.pulseDotLive : styles.pulseDotIdle]} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.standbyBannerTitle}>
+              {standbyActive ? 'STANDBY TELEMETRY BROADCAST ACTIVE (3s)' : 'STANDBY TELEMETRY PAUSED'}
+            </Text>
+            <Text style={styles.standbyBannerSubtitle}>
+              {standbyActive
+                ? 'Position is syncing with web dashboard in real time'
+                : 'Awaiting satellite lock or network sync'}
+            </Text>
           </View>
         </View>
 
@@ -219,22 +253,22 @@ export default function DashboardScreen() {
           />
           <StatusBadge label="GPS Location Permission" status={gpsPermissionStatus} />
           <StatusBadge label="Android GPS Provider" status={gpsProviderStatus} />
-          <StatusBadge label="Initial Satellite Fix" status={locationAcquisitionStatus} />
+          <StatusBadge label="Satellite Fix" status={locationAcquisitionStatus} />
         </View>
 
-        {/* Before-Trip Info Panel */}
+        {/* Live Standby Telemetry Panel */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>BEFORE-TRIP TELEMETRY</Text>
+          <Text style={styles.cardTitle}>STANDBY POSITION & SENSORS</Text>
 
           <View style={styles.infoGrid}>
             <View style={styles.infoCol}>
-              <Text style={styles.infoLabel}>CURRENT LATITUDE</Text>
+              <Text style={styles.infoLabel}>LATITUDE</Text>
               <Text style={styles.infoValue}>
                 {currentLocation ? currentLocation.latitude.toFixed(6) : '--'}
               </Text>
             </View>
             <View style={styles.infoCol}>
-              <Text style={styles.infoLabel}>CURRENT LONGITUDE</Text>
+              <Text style={styles.infoLabel}>LONGITUDE</Text>
               <Text style={styles.infoValue}>
                 {currentLocation ? currentLocation.longitude.toFixed(6) : '--'}
               </Text>
@@ -260,14 +294,16 @@ export default function DashboardScreen() {
 
           <View style={styles.timestampRow}>
             <View>
-              <Text style={styles.infoLabel}>LAST GPS FIX TIME</Text>
+              <Text style={styles.infoLabel}>LAST FIX TIME</Text>
               <Text style={styles.timestampText}>
                 {currentLocation ? formatTime(currentLocation.timestamp) : 'Awaiting fix...'}
               </Text>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
-              <Text style={styles.infoLabel}>LOCAL DATE</Text>
-              <Text style={styles.timestampText}>{deviceTime.toLocaleDateString()}</Text>
+              <Text style={styles.infoLabel}>BROADCAST CADENCE</Text>
+              <Text style={[styles.timestampText, { color: THEME.colors.primary, fontWeight: '700' }]}>
+                3 Seconds (Standby)
+              </Text>
             </View>
           </View>
         </View>
@@ -277,13 +313,13 @@ export default function DashboardScreen() {
           {!isReadyToStart && (
             <View style={styles.noticeBox}>
               <Text style={styles.noticeText}>
-                Ensure Internet, Supabase, and Android GPS are connected before starting a trip.
+                Ensure Internet, Supabase, and Android GPS are connected before starting a journey.
               </Text>
             </View>
           )}
 
           <Button
-            title="START TRIP"
+            title="START TRIP (1s TRACKING)"
             onPress={handleStartTrip}
             loading={isStartingTrip}
             disabled={!isReadyToStart}
@@ -312,15 +348,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   logoutBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: THEME.borderRadius.sm,
-    backgroundColor: '#EBEBEB',
+    backgroundColor: '#0B3C5D15',
+    borderWidth: 1,
+    borderColor: '#0B3C5D30',
   },
   logoutText: {
     fontSize: 12,
     fontWeight: '700',
-    color: THEME.colors.text,
+    color: THEME.colors.navy,
   },
   statusBar: {
     flexDirection: 'row',
@@ -331,24 +369,64 @@ const styles = StyleSheet.create({
     borderRadius: THEME.borderRadius.md,
     borderWidth: 1,
     borderColor: THEME.colors.border,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   userLabel: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
     color: THEME.colors.textMuted,
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
   userEmail: {
     fontSize: 13,
-    fontWeight: '600',
-    color: THEME.colors.text,
-    maxWidth: 180,
+    fontWeight: '700',
+    color: THEME.colors.navy,
+    marginTop: 2,
   },
   clockText: {
     fontSize: 14,
     fontWeight: '800',
     color: THEME.colors.text,
+    marginTop: 2,
+  },
+  standbyBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: THEME.borderRadius.md,
+    marginBottom: 16,
+    borderWidth: 1,
+  },
+  standbyBannerActive: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#10B981',
+  },
+  standbyBannerStandby: {
+    backgroundColor: '#F1F5F9',
+    borderColor: '#CBD5E1',
+  },
+  pulseDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 10,
+  },
+  pulseDotLive: {
+    backgroundColor: '#10B981',
+  },
+  pulseDotIdle: {
+    backgroundColor: '#94A3B8',
+  },
+  standbyBannerTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: THEME.colors.navy,
+    letterSpacing: 0.5,
+  },
+  standbyBannerSubtitle: {
+    fontSize: 11,
+    color: THEME.colors.textMuted,
+    marginTop: 1,
   },
   card: {
     backgroundColor: THEME.colors.surface,
@@ -373,15 +451,15 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   cardTitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
-    color: THEME.colors.textMuted,
+    color: THEME.colors.navy,
     letterSpacing: 0.8,
   },
   refreshLink: {
     fontSize: 12,
     fontWeight: '700',
-    color: THEME.colors.primaryDark,
+    color: THEME.colors.primary,
   },
   infoGrid: {
     flexDirection: 'row',
@@ -396,10 +474,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: THEME.colors.textMuted,
     marginBottom: 2,
+    letterSpacing: 0.5,
   },
   infoValue: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
     color: THEME.colors.text,
   },
   timestampRow: {
@@ -419,25 +498,28 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   noticeBox: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#FFF7ED',
     borderWidth: 1,
-    borderColor: '#F59E0B',
+    borderColor: THEME.colors.primary,
     padding: 12,
     borderRadius: THEME.borderRadius.sm,
     marginBottom: 14,
   },
   noticeText: {
     fontSize: 12,
-    color: '#92400E',
-    fontWeight: '500',
+    color: '#9A3412',
+    fontWeight: '600',
     textAlign: 'center',
   },
   startBtn: {
     height: 56,
     borderRadius: THEME.borderRadius.md,
+    backgroundColor: THEME.colors.primary,
   },
   startBtnText: {
-    fontSize: 18,
+    fontSize: 16,
+    fontWeight: '800',
     letterSpacing: 1,
+    color: '#FFFFFF',
   },
 });

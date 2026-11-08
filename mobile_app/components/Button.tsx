@@ -44,7 +44,7 @@ export const Button: React.FC<ButtonProps> = ({
     if (disabled) return '#999999';
     switch (variant) {
       case 'primary':
-        return '#000000';
+        return '#FFFFFF';
       case 'danger':
         return '#FFFFFF';
       case 'secondary':

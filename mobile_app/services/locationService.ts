@@ -22,7 +22,7 @@ export interface TripRecord {
 
 export class LocationService {
   private static retryQueue: Array<{
-    trip_id: string;
+    trip_id: string | null;
     user_id: string;
     latitude: number;
     longitude: number;
@@ -31,6 +31,7 @@ export class LocationService {
     recorded_at: string;
   }> = [];
   private static isFlushingQueue = false;
+  private static standbySubscription: Location.LocationSubscription | null = null;
 
   /**
    * Check and request foreground GPS permission.
@@ -83,9 +84,68 @@ export class LocationService {
   }
 
   /**
-   * Start a new trip in Supabase.
+   * Start 3-second standby location transmission while user is logged in.
+   */
+  static async startStandbyWatcher(
+    userId: string,
+    onFix?: (reading: LocationReading) => void
+  ): Promise<boolean> {
+    if (this.standbySubscription) {
+      // Already running
+      return true;
+    }
+
+    try {
+      const hasPerm = await this.requestPermissions();
+      const isEnabled = await this.checkProviderEnabled();
+      if (!hasPerm || !isEnabled) return false;
+
+      this.standbySubscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: 3000, // 3-second standby interval
+          distanceInterval: 0,
+        },
+        async (loc) => {
+          const reading: LocationReading = {
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude,
+            accuracy: loc.coords.accuracy ?? null,
+            speed: loc.coords.speed ?? null,
+            timestamp: loc.timestamp,
+          };
+
+          if (onFix) onFix(reading);
+
+          // Transmit standby live location (trip_id is null)
+          await this.recordLocation(null, userId, reading);
+        }
+      );
+
+      return true;
+    } catch (e) {
+      console.error('Failed to start standby location watcher:', e);
+      return false;
+    }
+  }
+
+  /**
+   * Stop standby location transmission.
+   */
+  static stopStandbyWatcher(): void {
+    if (this.standbySubscription) {
+      this.standbySubscription.remove();
+      this.standbySubscription = null;
+    }
+  }
+
+  /**
+   * Start a new active trip in Supabase.
    */
   static async startTrip(userId: string, tripName?: string): Promise<TripRecord> {
+    // Stop standby transmission when elevating to active trip
+    this.stopStandbyWatcher();
+
     const defaultName = tripName || `Trip ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
     const startedAt = new Date().toISOString();
 
@@ -127,9 +187,10 @@ export class LocationService {
 
   /**
    * Insert GPS record into location_history with offline retry queue buffering.
+   * Supports both active trips (with tripId) and standby telemetry (tripId = null).
    */
   static async recordLocation(
-    tripId: string,
+    tripId: string | null,
     userId: string,
     reading: LocationReading
   ): Promise<{ success: boolean; queued: boolean; error?: string }> {
@@ -138,7 +199,7 @@ export class LocationService {
     }
 
     const payload = {
-      trip_id: tripId,
+      trip_id: tripId || null,
       user_id: userId,
       latitude: reading.latitude,
       longitude: reading.longitude,
